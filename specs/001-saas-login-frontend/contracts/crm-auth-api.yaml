@@ -1,0 +1,503 @@
+openapi: 3.0.3
+info:
+  title: CRM 驗證 API
+  description: |
+    SaaS 登入系統與 CRM 服務整合的身份驗證 API 規格。
+    此文件定義前端登入頁面與 CRM API 之間的契約。
+  version: 1.0.0
+  contact:
+    name: API Support
+    email: api-support@example.com
+
+servers:
+  - url: https://api.example.com
+    description: 正式環境
+  - url: https://staging-api.example.com
+    description: 測試環境
+  - url: http://localhost:3000
+    description: 本地開發環境
+
+tags:
+  - name: Authentication
+    description: 身份驗證相關端點
+
+paths:
+  /auth/login:
+    post:
+      tags:
+        - Authentication
+      summary: 使用者登入
+      description: |
+        驗證使用者帳號密碼，成功後回傳 JWT token 與使用者資訊。
+
+        **功能需求對應**: FR-004
+
+        **使用者故事對應**: P1 - 基本登入流程
+
+        **行為**:
+        - 驗證帳號密碼
+        - 成功時回傳 JWT token 與使用者基本資訊
+        - 失敗時回傳錯誤訊息
+        - 支援速率限制（防暴力破解）
+
+        **錯誤處理**:
+        - 401: 帳號或密碼錯誤
+        - 429: 嘗試次數過多
+        - 500: 伺服器錯誤
+
+      operationId: userLogin
+
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+            examples:
+              basic:
+                summary: 基本登入請求
+                value:
+                  username: "user@example.com"
+                  password: "SecureP@ssw0rd"
+                  rememberMe: false
+              rememberMe:
+                summary: 記住我選項
+                value:
+                  username: "user@example.com"
+                  password: "SecureP@ssw0rd"
+                  rememberMe: true
+
+      responses:
+        '200':
+          description: 登入成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginSuccessResponse'
+              examples:
+                success:
+                  summary: 成功回應範例
+                  value:
+                    success: true
+                    data:
+                      user:
+                        id: "usr_1234567890"
+                        username: "user@example.com"
+                        displayName: "張三"
+                        email: "user@example.com"
+                        role: "user"
+                        permissions:
+                          - "read:profile"
+                          - "write:profile"
+                      token:
+                        accessToken: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"
+                        refreshToken: "refresh_token_example"
+                        expiresIn: 3600
+                        tokenType: "Bearer"
+                    message: "登入成功"
+
+        '400':
+          description: 請求格式錯誤
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalidRequest:
+                  summary: 請求格式錯誤
+                  value:
+                    success: false
+                    error:
+                      code: "INVALID_REQUEST"
+                      message: "請求格式錯誤"
+                      details:
+                        username: "帳號為必填欄位"
+
+        '401':
+          description: 驗證失敗
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                unauthorized:
+                  summary: 帳號或密碼錯誤
+                  value:
+                    success: false
+                    error:
+                      code: "INVALID_CREDENTIALS"
+                      message: "帳號或密碼錯誤"
+
+        '429':
+          description: 請求過於頻繁
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                tooManyRequests:
+                  summary: 速率限制
+                  value:
+                    success: false
+                    error:
+                      code: "TOO_MANY_REQUESTS"
+                      message: "嘗試次數過多，請 5 分鐘後再試"
+                      details:
+                        retryAfter: 300
+
+        '500':
+          description: 伺服器錯誤
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                serverError:
+                  summary: 伺服器錯誤
+                  value:
+                    success: false
+                    error:
+                      code: "INTERNAL_SERVER_ERROR"
+                      message: "系統錯誤，請稍後再試"
+
+        '503':
+          description: 服務暫時無法使用
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                serviceUnavailable:
+                  summary: 服務維護中
+                  value:
+                    success: false
+                    error:
+                      code: "SERVICE_UNAVAILABLE"
+                      message: "系統維護中，請稍後再試"
+
+  /auth/verify:
+    get:
+      tags:
+        - Authentication
+      summary: 驗證 Token 有效性
+      description: |
+        檢查當前 token 是否仍然有效。
+
+        **功能需求對應**: FR-009
+
+        **使用者故事對應**: P2 - 登入狀態記憶
+
+        **行為**:
+        - 驗證 token 是否過期
+        - 驗證 token 簽章是否正確
+        - 回傳使用者基本資訊
+
+      operationId: verifyToken
+
+      security:
+        - bearerAuth: []
+
+      responses:
+        '200':
+          description: Token 有效
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VerifySuccessResponse'
+              examples:
+                valid:
+                  summary: Token 有效
+                  value:
+                    success: true
+                    data:
+                      user:
+                        id: "usr_1234567890"
+                        username: "user@example.com"
+                        displayName: "張三"
+                        email: "user@example.com"
+                        role: "user"
+                    message: "Token 有效"
+
+        '401':
+          description: Token 無效或已過期
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                expired:
+                  summary: Token 過期
+                  value:
+                    success: false
+                    error:
+                      code: "TOKEN_EXPIRED"
+                      message: "Token 已過期，請重新登入"
+                invalid:
+                  summary: Token 無效
+                  value:
+                    success: false
+                    error:
+                      code: "INVALID_TOKEN"
+                      message: "Token 無效"
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        使用 JWT Bearer token 進行身份驗證。
+
+        **格式**: `Authorization: Bearer <token>`
+
+        **取得方式**: 透過 `/auth/login` 端點登入後取得
+
+  schemas:
+    LoginRequest:
+      type: object
+      required:
+        - username
+        - password
+      properties:
+        username:
+          type: string
+          minLength: 3
+          maxLength: 50
+          description: 使用者帳號
+          example: "user@example.com"
+        password:
+          type: string
+          minLength: 6
+          maxLength: 100
+          format: password
+          description: 使用者密碼（明文傳輸需使用 HTTPS）
+          example: "SecureP@ssw0rd"
+        rememberMe:
+          type: boolean
+          default: false
+          description: 是否記住登入狀態
+          example: false
+
+    LoginSuccessResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+          description: 請求是否成功
+          example: true
+        data:
+          type: object
+          required:
+            - user
+            - token
+          properties:
+            user:
+              $ref: '#/components/schemas/UserInfo'
+            token:
+              $ref: '#/components/schemas/AuthToken'
+        message:
+          type: string
+          description: 成功訊息（選填）
+          example: "登入成功"
+
+    VerifySuccessResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+          description: 請求是否成功
+          example: true
+        data:
+          type: object
+          required:
+            - user
+          properties:
+            user:
+              $ref: '#/components/schemas/UserInfo'
+        message:
+          type: string
+          description: 成功訊息
+          example: "Token 有效"
+
+    UserInfo:
+      type: object
+      required:
+        - id
+        - username
+        - displayName
+        - role
+      properties:
+        id:
+          type: string
+          description: 使用者唯一識別碼
+          example: "usr_1234567890"
+        username:
+          type: string
+          description: 使用者帳號
+          example: "user@example.com"
+        displayName:
+          type: string
+          description: 顯示名稱
+          example: "張三"
+        email:
+          type: string
+          format: email
+          description: 電子郵件（選填）
+          example: "user@example.com"
+        role:
+          type: string
+          enum: [admin, user, guest]
+          description: 使用者角色
+          example: "user"
+        permissions:
+          type: array
+          items:
+            type: string
+          description: 使用者權限列表（選填）
+          example:
+            - "read:profile"
+            - "write:profile"
+
+    AuthToken:
+      type: object
+      required:
+        - accessToken
+        - expiresIn
+        - tokenType
+      properties:
+        accessToken:
+          type: string
+          description: JWT 存取 token
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        refreshToken:
+          type: string
+          description: 刷新 token（選填，若支援 token 刷新功能）
+          example: "refresh_token_example"
+        expiresIn:
+          type: integer
+          format: int32
+          description: Token 有效期（秒）
+          example: 3600
+          minimum: 1
+        tokenType:
+          type: string
+          enum: [Bearer]
+          description: Token 類型
+          example: "Bearer"
+
+    ErrorResponse:
+      type: object
+      required:
+        - success
+        - error
+      properties:
+        success:
+          type: boolean
+          enum: [false]
+          description: 請求是否成功
+          example: false
+        error:
+          type: object
+          required:
+            - code
+            - message
+          properties:
+            code:
+              type: string
+              description: 錯誤代碼
+              example: "INVALID_CREDENTIALS"
+            message:
+              type: string
+              description: 使用者友善的錯誤訊息（繁體中文）
+              example: "帳號或密碼錯誤"
+            details:
+              type: object
+              description: 額外的錯誤詳細資訊（選填）
+              additionalProperties: true
+              example:
+                field: "password"
+                hint: "密碼長度至少需 6 個字元"
+
+  responses:
+    UnauthorizedError:
+      description: 未授權 - Token 無效或已過期
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    ServerError:
+      description: 伺服器內部錯誤
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+# 額外說明
+x-documentation:
+  security:
+    - 所有 API 請求必須使用 HTTPS
+    - 密碼明文傳輸僅在 HTTPS 下安全
+    - Token 應儲存於 localStorage 或 sessionStorage（依 rememberMe 決定）
+    - 建議實作 CSRF 防護
+
+  rateLimit:
+    login:
+      description: 登入端點速率限制
+      limit: 5 次 / 5 分鐘（每個 IP）
+      headers:
+        X-RateLimit-Limit: 5
+        X-RateLimit-Remaining: 4
+        X-RateLimit-Reset: 1698888888
+
+  errors:
+    mapping:
+      INVALID_CREDENTIALS: "帳號或密碼錯誤，請重新輸入"
+      TOO_MANY_REQUESTS: "嘗試次數過多，請稍後再試"
+      INTERNAL_SERVER_ERROR: "系統錯誤，請稍後再試"
+      SERVICE_UNAVAILABLE: "系統維護中，請稍後再試"
+      NETWORK_ERROR: "連線失敗，請檢查網路狀態後重試"
+      TIMEOUT: "請求逾時，請稍後重試"
+      INVALID_REQUEST: "請求格式錯誤"
+      TOKEN_EXPIRED: "Token 已過期，請重新登入"
+      INVALID_TOKEN: "Token 無效"
+
+  testScenarios:
+    - scenario: 成功登入
+      request:
+        username: "user@example.com"
+        password: "ValidPassword123"
+        rememberMe: false
+      expectedStatus: 200
+      expectedResponse:
+        success: true
+        data:
+          token:
+            accessToken: "<JWT_TOKEN>"
+
+    - scenario: 帳號或密碼錯誤
+      request:
+        username: "user@example.com"
+        password: "WrongPassword"
+      expectedStatus: 401
+      expectedResponse:
+        success: false
+        error:
+          code: "INVALID_CREDENTIALS"
+
+    - scenario: 速率限制
+      description: 5 分鐘內嘗試登入超過 5 次
+      expectedStatus: 429
+      expectedResponse:
+        success: false
+        error:
+          code: "TOO_MANY_REQUESTS"
