@@ -2,7 +2,8 @@
 // Pinia 驗證狀態管理
 
 import { defineStore } from 'pinia'
-import type { UserInfo, AuthToken } from '@/types/auth'
+import type { UserInfo, AuthToken, LoginCredentials } from '@/types/auth'
+import { AuthService } from '@/services/authService'
 
 export interface AuthState {
   isAuthenticated: boolean
@@ -53,11 +54,17 @@ export const useAuthStore = defineStore('auth', {
     },
 
     /**
-     * 登入方法 (骨架 - 將在 US1 實作)
+     * 登入方法
      */
-    async login() {
-      // 將在 T029 實作
-      throw new Error('Not implemented yet')
+    async login(credentials: LoginCredentials) {
+      const response = await AuthService.login(credentials)
+
+      if (response.success) {
+        this.setAuth(response.data.user, response.data.token)
+        return response
+      }
+
+      throw new Error('Login failed')
     },
 
     /**

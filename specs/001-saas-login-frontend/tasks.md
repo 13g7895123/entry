@@ -72,25 +72,25 @@
 
 > **重要**: 依照 TDD 原則，這些測試必須先寫並驗證失敗，然後才能進行實作
 
-- [ ] T025 [P] [US1] 建立 Contract 測試 frontend/tests/contract/crm-auth.spec.ts（測試 /auth/login 端點 - 成功登入、401 錯誤、網路錯誤、逾時，使用 MSW mock）
-- [ ] T026 [P] [US1] 建立 Integration 測試 frontend/tests/integration/login-flow.spec.ts（完整登入流程 E2E 測試：輸入帳密 → API 呼叫 → 導向，使用 Playwright）
-- [ ] T027 [P] [US1] 建立 Unit 測試 frontend/tests/unit/utils/errorHandler.spec.ts（測試錯誤訊息對應邏輯）
+- [X] T025 [P] [US1] 建立 Contract 測試 frontend/tests/contract/crm-auth.spec.ts（測試 /auth/login 端點 - 成功登入、401 錯誤、網路錯誤、逾時，使用 MSW mock）
+- [X] T026 [P] [US1] 建立 Integration 測試 frontend/tests/integration/login-flow.spec.ts（完整登入流程 E2E 測試：輸入帳密 → API 呼叫 → 導向，使用 Playwright）
+- [X] T027 [P] [US1] 建立 Unit 測試 frontend/tests/unit/utils/errorHandler.spec.ts（測試錯誤訊息對應邏輯）
 
 ### 實作 - 使用者故事 1
 
-- [ ] T028 [P] [US1] 實作 authService login 方法於 frontend/src/services/authService.ts（呼叫 POST /auth/login，處理成功與錯誤回應）
-- [ ] T029 [P] [US1] 實作 auth store actions 於 frontend/src/stores/auth.ts（setAuth, clearAuth, login 方法整合 authService）
-- [ ] T030 [P] [US1] 建立 useLocalStorage composable frontend/src/composables/useLocalStorage.ts（管理 localStorage/sessionStorage token 儲存）
-- [ ] T031 [US1] 實作 useAuth composable frontend/src/composables/useAuth.ts（整合 auth store 與 localStorage，login 函式，錯誤處理）
-- [ ] T032 [P] [US1] 建立 Alert 元件 frontend/src/components/Alert.vue（顯示錯誤/成功訊息，支援不同類型與自動關閉）
-- [ ] T033 [P] [US1] 建立 Button 元件 frontend/src/components/Button.vue（可重用按鈕，支援 loading 狀態與 disabled）
-- [ ] T034 [P] [US1] 建立 FormInput 元件 frontend/src/components/FormInput.vue（可重用輸入框，支援錯誤訊息顯示與無障礙 label）
-- [ ] T035 [US1] 建立 LoginForm 元件 frontend/src/components/LoginForm.vue（整合 FormInput, Button, Alert，綁定表單資料，呼叫 useAuth login）
-- [ ] T036 [US1] 建立 LoginPage 視圖 frontend/src/views/LoginPage.vue（使用 LoginForm 元件，處理頁面佈局與響應式設計）
-- [ ] T037 [US1] 建立簡易 DashboardPage 視圖 frontend/src/views/DashboardPage.vue（顯示登入成功訊息與使用者資訊，用於驗證導向）
-- [ ] T038 [US1] 更新 router navigation guard frontend/src/router/index.ts（檢查登入狀態，未登入導向 /login，已登入訪問 /login 導向 /dashboard）
-- [ ] T039 [US1] 在 LoginForm 新增載入狀態處理（登入中按鈕 disabled 並顯示載入動畫）
-- [ ] T040 [US1] 在 LoginForm 新增錯誤處理（網路錯誤、API 逾時、401 錯誤，顯示繁體中文訊息）
+- [X] T028 [P] [US1] 實作 authService login 方法於 frontend/src/services/authService.ts（呼叫 POST /auth/login，處理成功與錯誤回應）
+- [X] T029 [P] [US1] 實作 auth store actions 於 frontend/src/stores/auth.ts（setAuth, clearAuth, login 方法整合 authService）
+- [X] T030 [P] [US1] 建立 useLocalStorage composable frontend/src/composables/useLocalStorage.ts（管理 localStorage/sessionStorage token 儲存）
+- [X] T031 [US1] 實作 useAuth composable frontend/src/composables/useAuth.ts（整合 auth store 與 localStorage，login 函式，錯誤處理）
+- [X] T032 [P] [US1] 建立 Alert 元件 frontend/src/components/Alert.vue（顯示錯誤/成功訊息，支援不同類型與自動關閉）
+- [X] T033 [P] [US1] 建立 Button 元件 frontend/src/components/Button.vue（可重用按鈕，支援 loading 狀態與 disabled）
+- [X] T034 [P] [US1] 建立 FormInput 元件 frontend/src/components/FormInput.vue（可重用輸入框，支援錯誤訊息顯示與無障礙 label）
+- [X] T035 [US1] 建立 LoginForm 元件 frontend/src/components/LoginForm.vue（整合 FormInput, Button, Alert，綁定表單資料，呼叫 useAuth login）
+- [X] T036 [US1] 建立 LoginPage 視圖 frontend/src/views/LoginPage.vue（使用 LoginForm 元件，處理頁面佈局與響應式設計）
+- [X] T037 [US1] 建立簡易 DashboardPage 視圖 frontend/src/views/DashboardPage.vue（顯示登入成功訊息與使用者資訊，用於驗證導向）
+- [X] T038 [US1] 更新 router navigation guard frontend/src/router/index.ts（檢查登入狀態，未登入導向 /login，已登入訪問 /login 導向 /dashboard）
+- [X] T039 [US1] 在 LoginForm 新增載入狀態處理（登入中按鈕 disabled 並顯示載入動畫）
+- [X] T040 [US1] 在 LoginForm 新增錯誤處理（網路錯誤、API 逾時、401 錯誤，顯示繁體中文訊息）
 
 **檢查點**: 此時使用者故事 1 應完全可運作且可獨立測試
 
