@@ -4,6 +4,7 @@
 import { defineStore } from 'pinia'
 import type { UserInfo, AuthToken, LoginCredentials } from '@/types/auth'
 import { AuthService } from '@/services/authService'
+import { useLocalStorage } from '@/composables/useLocalStorage'
 
 export interface AuthState {
   isAuthenticated: boolean
@@ -68,11 +69,47 @@ export const useAuthStore = defineStore('auth', {
     },
 
     /**
-     * 檢查登入狀態 (骨架 - 將在 US2 實作)
+     * 檢查登入狀態
+     * 頁面載入時檢查 localStorage/sessionStorage token，若有效則自動登入
      */
     async checkAuth() {
-      // 將在 T048 實作
-      console.log('checkAuth called - to be implemented in US2')
+      const { getToken, getTokenExpiry, isTokenExpired, clearToken } = useLocalStorage()
+
+      // 檢查是否有 token
+      const token = getToken()
+      if (!token) {
+        this.clearAuth()
+        return
+      }
+
+      // 檢查 token 是否過期
+      if (isTokenExpired()) {
+        this.clearAuth()
+        clearToken()
+        return
+      }
+
+      // 驗證 token 有效性
+      try {
+        const response = await AuthService.verify()
+
+        if (response.success) {
+          // 重建驗證狀態
+          const expiry = getTokenExpiry()
+          if (expiry) {
+            const expiresIn = Math.floor((expiry - Date.now()) / 1000)
+            this.setAuth(response.data.user, {
+              accessToken: token,
+              expiresIn,
+              tokenType: 'Bearer'
+            })
+          }
+        }
+      } catch (error) {
+        // Token 無效或過期，清除狀態
+        this.clearAuth()
+        clearToken()
+      }
     }
   }
 })

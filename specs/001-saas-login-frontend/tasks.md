@@ -104,21 +104,21 @@
 
 ### 測試 - 使用者故事 2（TDD：必須先寫且失敗）
 
-- [ ] T041 [P] [US2] 建立 Contract 測試 frontend/tests/contract/crm-auth.spec.ts 新增 /auth/verify 端點測試（token 有效、token 過期、token 無效）
-- [ ] T042 [P] [US2] 建立 Integration 測試 frontend/tests/integration/remember-me.spec.ts（記住我流程：勾選 → 登入 → 關閉瀏覽器 → 重開 → 自動登入；未勾選 → 登出）
-- [ ] T043 [P] [US2] 建立 Unit 測試 frontend/tests/unit/composables/useLocalStorage.spec.ts（測試 token 儲存、讀取、清除、過期檢查）
+- [X] T041 [P] [US2] 建立 Contract 測試 frontend/tests/contract/crm-auth.spec.ts 新增 /auth/verify 端點測試（token 有效、token 過期、token 無效）
+- [X] T042 [P] [US2] 建立 Integration 測試 frontend/tests/integration/remember-me.spec.ts（記住我流程：勾選 → 登入 → 關閉瀏覽器 → 重開 → 自動登入；未勾選 → 登出）
+- [X] T043 [P] [US2] 建立 Unit 測試 frontend/tests/unit/composables/useLocalStorage.spec.ts（測試 token 儲存、讀取、清除、過期檢查）
 
 ### 實作 - 使用者故事 2
 
-- [ ] T044 [US2] 在 LoginForm 元件新增「記住我」勾選框（rememberMe checkbox，預設 false）
-- [ ] T045 [US2] 在 useAuth composable 擴充 login 函式處理 rememberMe 參數（true 用 localStorage, false 用 sessionStorage）
-- [ ] T046 [US2] 在 useLocalStorage composable 實作 token 儲存邏輯（依 rememberMe 選擇儲存位置，包含過期時間戳記）
-- [ ] T047 [US2] 實作 authService verify 方法 frontend/src/services/authService.ts（呼叫 GET /auth/verify，驗證 token 有效性）
-- [ ] T048 [US2] 在 auth store 新增 checkAuth action（頁面載入時檢查 localStorage/sessionStorage token，若有效則自動登入）
-- [ ] T049 [US2] 在 auth store 新增 isTokenValid getter（檢查 token 是否過期，計算 loginTime + expiresIn）
-- [ ] T050 [US2] 在 App.vue onMounted 呼叫 checkAuth（應用程式啟動時自動檢查登入狀態）
-- [ ] T051 [US2] 在 router navigation guard 新增 token 檢查邏輯（訪問需登入頁面時，檢查 token 有效性，無效則清除並導向登入頁）
-- [ ] T052 [US2] 在 LoginPage 新增進入頁面時 token 檢查（若已登入則直接導向 dashboard）
+- [X] T044 [US2] 在 LoginForm 元件新增「記住我」勾選框（rememberMe checkbox，預設 false）
+- [X] T045 [US2] 在 useAuth composable 擴充 login 函式處理 rememberMe 參數（true 用 localStorage, false 用 sessionStorage）
+- [X] T046 [US2] 在 useLocalStorage composable 實作 token 儲存邏輯（依 rememberMe 選擇儲存位置，包含過期時間戳記）
+- [X] T047 [US2] 實作 authService verify 方法 frontend/src/services/authService.ts（呼叫 GET /auth/verify，驗證 token 有效性）
+- [X] T048 [US2] 在 auth store 新增 checkAuth action（頁面載入時檢查 localStorage/sessionStorage token，若有效則自動登入）
+- [X] T049 [US2] 在 auth store 新增 isTokenValid getter（檢查 token 是否過期，計算 loginTime + expiresIn）
+- [X] T050 [US2] 在 App.vue onMounted 呼叫 checkAuth（應用程式啟動時自動檢查登入狀態）
+- [X] T051 [US2] 在 router navigation guard 新增 token 檢查邏輯（訪問需登入頁面時，檢查 token 有效性，無效則清除並導向登入頁）
+- [X] T052 [US2] 在 LoginPage 新增進入頁面時 token 檢查（若已登入則直接導向 dashboard）
 
 **檢查點**: 此時使用者故事 1 和 2 都能獨立運作
 
