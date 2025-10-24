@@ -1,0 +1,253 @@
+openapi: 3.0.3
+info:
+  title: 通知 API
+  description: 應用程式中心通知面板使用的通知 API 規格
+  version: 1.0.0
+  contact:
+    name: Entry Team
+servers:
+  - url: http://localhost:9230/api/v1
+    description: 本地開發環境
+  - url: https://api.example.com/api/v1
+    description: 生產環境 (待定義)
+
+paths:
+  /notifications:
+    get:
+      summary: 獲取通知列表
+      description: 獲取當前使用者的最新通知列表,用於通知面板顯示
+      operationId: getNotifications
+      tags:
+        - Notifications
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: limit
+          in: query
+          description: 限制返回的通知數量
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 5
+            example: 5
+        - name: offset
+          in: query
+          description: 分頁偏移量 (未來擴展用)
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+      responses:
+        '200':
+          description: 成功獲取通知列表
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationResponse'
+              examples:
+                withNotifications:
+                  summary: 有通知的情況
+                  value:
+                    notifications:
+                      - id: "notif-001"
+                        title: "新訊息"
+                        message: "您有一則新的系統訊息"
+                        type: "info"
+                        createdAt: "2025-10-24T10:30:00Z"
+                        isRead: false
+                        link: "/messages/123"
+                      - id: "notif-002"
+                        title: "系統更新"
+                        message: "系統將於今晚進行維護"
+                        type: "warning"
+                        createdAt: "2025-10-24T09:00:00Z"
+                        isRead: true
+                    unreadCount: 1
+                    totalCount: 15
+                emptyNotifications:
+                  summary: 無通知的情況
+                  value:
+                    notifications: []
+                    unreadCount: 0
+                    totalCount: 0
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /notifications/{notificationId}/read:
+    post:
+      summary: 標記通知為已讀
+      description: 將指定的通知標記為已讀狀態
+      operationId: markNotificationAsRead
+      tags:
+        - Notifications
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: notificationId
+          in: path
+          description: 通知 ID
+          required: true
+          schema:
+            type: string
+            example: "notif-001"
+      responses:
+        '200':
+          description: 成功標記為已讀
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "通知已標記為已讀"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: 通知不存在
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "NotFound"
+                message: "找不到指定的通知"
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: 使用 JWT access token 進行認證。Token 從登入 API 獲得。
+
+  schemas:
+    Notification:
+      type: object
+      required:
+        - id
+        - title
+        - message
+        - type
+        - createdAt
+        - isRead
+      properties:
+        id:
+          type: string
+          description: 通知唯一識別碼
+          example: "notif-001"
+        title:
+          type: string
+          description: 通知標題 (繁體中文)
+          minLength: 1
+          maxLength: 100
+          example: "新訊息"
+        message:
+          type: string
+          description: 通知內容 (繁體中文)
+          minLength: 1
+          maxLength: 500
+          example: "您有一則新的系統訊息"
+        type:
+          type: string
+          description: 通知類型 (決定顯示的圖示和顏色)
+          enum:
+            - info
+            - warning
+            - success
+            - error
+          example: "info"
+        createdAt:
+          type: string
+          format: date-time
+          description: 通知建立時間 (ISO 8601 格式)
+          example: "2025-10-24T10:30:00Z"
+        isRead:
+          type: boolean
+          description: 是否已讀
+          example: false
+        link:
+          type: string
+          description: 可選的連結路徑 (點擊通知後導向的頁面)
+          example: "/messages/123"
+        metadata:
+          type: object
+          description: 可選的元數據 (未來擴展用)
+          additionalProperties: true
+
+    NotificationResponse:
+      type: object
+      required:
+        - notifications
+        - unreadCount
+        - totalCount
+      properties:
+        notifications:
+          type: array
+          description: 通知列表 (依建立時間降序排列)
+          items:
+            $ref: '#/components/schemas/Notification'
+        unreadCount:
+          type: integer
+          description: 未讀通知數量
+          minimum: 0
+          example: 3
+        totalCount:
+          type: integer
+          description: 總通知數量
+          minimum: 0
+          example: 15
+
+    Error:
+      type: object
+      required:
+        - error
+        - message
+      properties:
+        error:
+          type: string
+          description: 錯誤代碼
+          example: "Unauthorized"
+        message:
+          type: string
+          description: 錯誤訊息 (繁體中文)
+          example: "未授權的請求"
+        details:
+          type: object
+          description: 可選的錯誤詳情
+          additionalProperties: true
+
+  responses:
+    Unauthorized:
+      description: 未授權 - Token 無效或已過期
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: "Unauthorized"
+            message: "未授權的請求,請重新登入"
+
+    InternalServerError:
+      description: 伺服器內部錯誤
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: "InternalServerError"
+            message: "伺服器發生錯誤,請稍後再試"
+
+tags:
+  - name: Notifications
+    description: 通知相關操作

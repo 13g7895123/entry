@@ -4,6 +4,7 @@
 import { http, HttpResponse, delay } from 'msw'
 import type { LoginCredentials, AuthToken, UserInfo } from '@/types/auth'
 import type { LoginApiResponse, VerifySuccessResponse, ErrorResponse } from '@/types/api'
+import type { NotificationResponse, Notification } from '@/types/notification'
 
 const BASE_URL = 'http://localhost:3000/api'
 
@@ -45,6 +46,35 @@ const mockToken: AuthToken = {
 
 // 儲存有效的 tokens（模擬伺服器端 session）
 const validTokens = new Set<string>()
+
+// 模擬通知資料
+const mockNotifications: Notification[] = [
+  {
+    id: 'notif-001',
+    title: '新訊息',
+    message: '您有一則新的系統訊息',
+    type: 'info',
+    createdAt: new Date().toISOString(),
+    isRead: false,
+    link: '/messages/123'
+  },
+  {
+    id: 'notif-002',
+    title: '系統更新',
+    message: '系統將於今晚進行維護',
+    type: 'warning',
+    createdAt: new Date(Date.now() - 3600000).toISOString(),
+    isRead: true
+  },
+  {
+    id: 'notif-003',
+    title: '操作成功',
+    message: '您的資料已成功儲存',
+    type: 'success',
+    createdAt: new Date(Date.now() - 7200000).toISOString(),
+    isRead: false
+  }
+]
 
 export const handlers = [
   /**
@@ -184,6 +214,98 @@ export const handlers = [
         data: {
           message: '登出成功'
         }
+      },
+      { status: 200 }
+    )
+  }),
+
+  /**
+   * GET /api/v1/notifications
+   * 獲取通知列表
+   */
+  http.get('/api/v1/notifications', async ({ request }) => {
+    await delay(300)
+
+    // 檢查認證
+    const authHeader = request.headers.get('Authorization')
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return HttpResponse.json<ErrorResponse>(
+        {
+          success: false,
+          error: {
+            message: '未授權的請求，請重新登入',
+            type: 'auth',
+            code: 'UNAUTHORIZED'
+          }
+        },
+        { status: 401 }
+      )
+    }
+
+    // 解析 query parameters
+    const url = new URL(request.url)
+    const limit = parseInt(url.searchParams.get('limit') || '5')
+
+    // 準備回應資料
+    const notifications = mockNotifications.slice(0, limit)
+    const unreadCount = mockNotifications.filter((n) => !n.isRead).length
+
+    const response: NotificationResponse = {
+      notifications,
+      unreadCount,
+      totalCount: mockNotifications.length
+    }
+
+    return HttpResponse.json(response, { status: 200 })
+  }),
+
+  /**
+   * POST /api/v1/notifications/:id/read
+   * 標記通知為已讀
+   */
+  http.post('/api/v1/notifications/:id/read', async ({ params, request }) => {
+    await delay(200)
+
+    // 檢查認證
+    const authHeader = request.headers.get('Authorization')
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return HttpResponse.json<ErrorResponse>(
+        {
+          success: false,
+          error: {
+            message: '未授權的請求',
+            type: 'auth',
+            code: 'UNAUTHORIZED'
+          }
+        },
+        { status: 401 }
+      )
+    }
+
+    const { id } = params
+
+    // 尋找通知並標記為已讀
+    const notification = mockNotifications.find((n) => n.id === id)
+    if (!notification) {
+      return HttpResponse.json<ErrorResponse>(
+        {
+          success: false,
+          error: {
+            message: '找不到指定的通知',
+            type: 'validation',
+            code: 'NOT_FOUND'
+          }
+        },
+        { status: 404 }
+      )
+    }
+
+    notification.isRead = true
+
+    return HttpResponse.json(
+      {
+        success: true,
+        message: '通知已標記為已讀'
       },
       { status: 200 }
     )

@@ -87,7 +87,9 @@ export default {
       },
       screens: {
         'xs': '320px',
-        'sm': '428px',
+        'sm': '480px',  // 大型手機 (應用程式中心每列 2 個)
+        'md': '768px',  // 平板 (每列 3 個)
+        'lg': '1024px', // 桌面 (每列 4 個)
       },
       minHeight: {
         'screen-safe': 'calc(100vh - 4rem)',
