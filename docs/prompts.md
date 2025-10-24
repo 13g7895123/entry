@@ -1,1 +1,1 @@
-1. 我目前在登入頁，輸入了帳號密碼卻無法使用，幫我確認問題，authStore.checkAuth is not a function
+1. 幫我調整這份specs/002-crm-api-integration/spec.md文件，核心目標為透過前端串接該crm api讓登入可以成功運行，登入後導到app_center的頁面
