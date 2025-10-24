@@ -2,9 +2,17 @@
 // MSW Request Handlers - 模擬 CRM API 用於開發與測試
 
 import { http, HttpResponse, delay } from 'msw'
-import type { LoginCredentials, AuthToken, UserInfo } from '@/types/auth'
+import type { LoginCredentials } from '@/types/auth'
 import type { LoginApiResponse, VerifySuccessResponse, ErrorResponse } from '@/types/api'
 import type { NotificationResponse, Notification } from '@/types/notification'
+
+// Mock Token 型別（用於測試）
+interface MockAuthToken {
+  accessToken: string
+  refreshToken: string
+  expiresIn: number
+  tokenType: string
+}
 
 const BASE_URL = 'http://localhost:3000/api'
 
@@ -14,30 +22,34 @@ const mockUsers = [
     username: 'user@example.com',
     password: 'password123',
     user: {
-      id: 'user-001',
+      id: 1,
       username: 'user@example.com',
-      displayName: '測試使用者',
       email: 'user@example.com',
-      role: 'user' as const,
-      permissions: ['read']
+      fullName: '測試使用者',
+      department: '開發部門',
+      region: '台北',
+      isActive: true,
+      lastLoginAt: new Date().toISOString()
     }
   },
   {
     username: 'admin@example.com',
     password: 'admin123',
     user: {
-      id: 'admin-001',
+      id: 2,
       username: 'admin@example.com',
-      displayName: '系統管理員',
       email: 'admin@example.com',
-      role: 'admin' as const,
-      permissions: ['read', 'write', 'admin']
+      fullName: '系統管理員',
+      department: '管理部門',
+      region: '台北',
+      isActive: true,
+      lastLoginAt: new Date().toISOString()
     }
   }
 ]
 
 // 模擬 token 資料
-const mockToken: AuthToken = {
+const mockToken: MockAuthToken = {
   accessToken: 'mock_access_token_' + Date.now(),
   refreshToken: 'mock_refresh_token_' + Date.now(),
   expiresIn: 3600, // 1小時
@@ -98,9 +110,8 @@ export const handlers = [
           {
             success: false,
             error: {
-              message: '帳號或密碼錯誤，請重新輸入',
-              type: 'auth',
-              code: 'INVALID_CREDENTIALS'
+              code: 'INVALID_CREDENTIALS',
+              message: '帳號或密碼錯誤，請重新輸入'
             }
           },
           { status: 401 }
@@ -108,7 +119,7 @@ export const handlers = [
       }
 
       // 產生新的 token
-      const token: AuthToken = {
+      const token: MockAuthToken = {
         ...mockToken,
         accessToken: 'mock_access_token_' + Date.now()
       }
@@ -132,9 +143,8 @@ export const handlers = [
         {
           success: false,
           error: {
-            message: '請求格式錯誤',
-            type: 'validation',
-            code: 'INVALID_REQUEST'
+            code: 'INVALID_REQUEST',
+            message: '請求格式錯誤'
           }
         },
         { status: 400 }
@@ -157,9 +167,8 @@ export const handlers = [
         {
           success: false,
           error: {
-            message: '未提供驗證憑證',
-            type: 'auth',
-            code: 'MISSING_TOKEN'
+            code: 'MISSING_TOKEN',
+            message: '未提供驗證憑證'
           }
         },
         { status: 401 }
@@ -174,9 +183,8 @@ export const handlers = [
         {
           success: false,
           error: {
-            message: '驗證憑證無效或已過期',
-            type: 'auth',
-            code: 'INVALID_TOKEN'
+            code: 'INVALID_TOKEN',
+            message: '驗證憑證無效或已過期'
           }
         },
         { status: 401 }
@@ -233,9 +241,8 @@ export const handlers = [
         {
           success: false,
           error: {
-            message: '未授權的請求，請重新登入',
-            type: 'auth',
-            code: 'UNAUTHORIZED'
+            code: 'UNAUTHORIZED',
+            message: '未授權的請求，請重新登入'
           }
         },
         { status: 401 }
@@ -273,9 +280,8 @@ export const handlers = [
         {
           success: false,
           error: {
-            message: '未授權的請求',
-            type: 'auth',
-            code: 'UNAUTHORIZED'
+            code: 'UNAUTHORIZED',
+            message: '未授權的請求'
           }
         },
         { status: 401 }
@@ -291,9 +297,8 @@ export const handlers = [
         {
           success: false,
           error: {
-            message: '找不到指定的通知',
-            type: 'validation',
-            code: 'NOT_FOUND'
+            code: 'NOT_FOUND',
+            message: '找不到指定的通知'
           }
         },
         { status: 404 }
