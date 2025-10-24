@@ -13,8 +13,9 @@ export default defineConfig({
     port: 5173,
     proxy: {
       '/api': {
-        target: process.env.VITE_CRM_API_URL || 'http://localhost:3000',
-        changeOrigin: true
+        target: 'http://localhost:9230',
+        changeOrigin: true,
+        secure: false
       }
     }
   },
@@ -30,6 +31,7 @@ export default defineConfig({
       }
     }
   },
+  // @ts-expect-error - Vite types don't include Vitest's test property
   test: {
     globals: true,
     environment: 'jsdom',

@@ -1,1 +1,1 @@
-1. 回覆請用zh-tw，幫我寫入CLAUDE.md
+1. 前端目前是有proxy，但網址錯了，變成這樣http://localhost:5173/api/v1/api/v1/auth/login，幫我修復一下

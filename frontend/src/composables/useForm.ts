@@ -2,6 +2,7 @@
 // 表單驗證 Composable - 整合 Yup schema 與即時驗證
 
 import { ref, reactive, computed } from 'vue'
+import type { Ref, ComputedRef } from 'vue'
 import type { ObjectSchema } from 'yup'
 import type { ValidationError } from 'yup'
 
@@ -11,8 +12,8 @@ interface FormErrors {
 
 interface UseFormReturn<T> {
   values: T
-  errors: FormErrors
-  isValid: boolean
+  errors: Ref<FormErrors>
+  isValid: ComputedRef<boolean>
   validateField: (fieldName: keyof T) => Promise<boolean>
   validateForm: () => Promise<boolean>
   resetForm: () => void
@@ -163,8 +164,8 @@ export function useForm<T extends Record<string, any>>(
 
   return {
     values,
-    errors: errors.value,
-    isValid: isValid.value,
+    errors,
+    isValid,
     validateField,
     validateForm,
     resetForm
