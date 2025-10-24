@@ -1,1 +1,1 @@
-1. 幫我調整這份specs/002-crm-api-integration/spec.md文件，核心目標為透過前端串接該crm api讓登入可以成功運行，登入後導到app_center的頁面
+1. 回覆請用zh-tw，幫我寫入CLAUDE.md

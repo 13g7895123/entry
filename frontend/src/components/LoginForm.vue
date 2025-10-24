@@ -108,6 +108,7 @@ const errorMessage = computed(() => error.value?.message || '')
 
 // 表單有效性：驗證通過且未在載入中
 const isFormValid = computed(() => {
+  console.log(isValid, isLoading.value, isSuccess.value)
   return isValid && !isLoading.value && !isSuccess.value
 })
 
