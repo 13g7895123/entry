@@ -1,0 +1,37 @@
+[
+    {
+        "id": 1,
+        "title": "My Dashboard",
+        "icon_url": "https://example.com/icon.png",
+        "link_url": "/dashboard",
+        "description": "Main system dashboard"
+    },
+    {
+        "id": 2,
+        "title": "User Management",
+        "icon_url": "https://ui-avatars.com/api/?name=UM&background=ff5252&color=fff&size=128",
+        "link_url": "/users",
+        "description": "Manage system users"
+    },
+    {
+        "id": 3,
+        "title": "Reports",
+        "icon_url": "https://ui-avatars.com/api/?name=RP&background=4caf50&color=fff&size=128",
+        "link_url": "/reports",
+        "description": "View analytics and reports"
+    },
+    {
+        "id": 4,
+        "title": "Settings",
+        "icon_url": "https://ui-avatars.com/api/?name=ST&background=607d8b&color=fff&size=128",
+        "link_url": "/settings",
+        "description": "System configuration"
+    },
+    {
+        "id": 5,
+        "title": "Help Center",
+        "icon_url": "https://ui-avatars.com/api/?name=HC&background=ff9800&color=fff&size=128",
+        "link_url": "/help",
+        "description": "Documentation and support"
+    }
+]
