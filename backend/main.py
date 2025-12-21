@@ -16,7 +16,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-DATA_FILE = "apps.json"
+# Resolve absolute path for persistence
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DATA_FILE = os.path.join(BASE_DIR, "apps.json")
 
 class AppItem(BaseModel):
     id: int
