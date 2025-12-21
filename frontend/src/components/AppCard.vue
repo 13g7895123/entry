@@ -1,14 +1,48 @@
 <script setup>
+import { ref } from 'vue'
+
 defineProps({
   title: String,
   icon: String,
   url: String,
   description: String
 })
+
+const cardRef = ref(null)
+const tiltStyle = ref({})
+
+const handleMouseMove = (e) => {
+    if (!cardRef.value) return
+    const rect = cardRef.value.getBoundingClientRect()
+    const x = e.clientX - rect.left
+    const y = e.clientY - rect.top
+    const centerX = rect.width / 2
+    const centerY = rect.height / 2
+    
+    const rotateX = ((y - centerY) / centerY) * -10 // Max -10 to 10 deg
+    const rotateY = ((x - centerX) / centerX) * 10 // Max -10 to 10 deg
+
+    tiltStyle.value = {
+        transform: `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1.02, 1.02, 1.02)`,
+    }
+}
+
+const handleMouseLeave = () => {
+    tiltStyle.value = {
+        transform: 'perspective(1000px) rotateX(0) rotateY(0) scale3d(1, 1, 1)',
+    }
+}
 </script>
 
 <template>
-  <a :href="url" class="app-card glass">
+  <a 
+    :href="url" 
+    class="app-card glass" 
+    ref="cardRef"
+    @mousemove="handleMouseMove"
+    @mouseleave="handleMouseLeave"
+    :style="tiltStyle"
+  >
     <div class="icon-wrapper">
       <img :src="icon" :alt="title" />
     </div>
@@ -30,16 +64,37 @@ defineProps({
   border-radius: 16px;
   text-decoration: none;
   color: var(--text-color);
-  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease;
+  transition: transform 0.1s ease-out, box-shadow 0.3s ease; /* Fast transform for touch */
   position: relative;
   overflow: hidden;
   text-align: center;
+  border: 1px solid rgba(255,255,255,0.1);
+  background: rgba(255, 255, 255, 0.03);
 }
 
 .app-card:hover {
-  transform: translateY(-8px) scale(1.02);
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
-  border-color: rgba(255, 255, 255, 0.4);
+}
+
+/* Holographic Border Glow */
+.app-card::before {
+    content: "";
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    border-radius: 16px;
+    padding: 1.5px; /* Border width */
+    background: radial-gradient(
+        300px circle at var(--mouse-x) var(--mouse-y), 
+        rgba(56, 189, 248, 0.6), 
+        transparent 40%
+    );
+    -webkit-mask: 
+        linear-gradient(#fff 0 0) content-box, 
+        linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+    opacity: 0.5;
 }
 
 .icon-wrapper {
