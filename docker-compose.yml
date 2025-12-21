@@ -1,0 +1,21 @@
+services:
+  backend:
+    build: ./backend
+    container_name: entry-backend
+    ports:
+      - "${BACKEND_PORT}:8001"
+    volumes:
+      - ./backend/apps.json:/app/apps.json
+      - ./backend/static:/app/static
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    container_name: entry-frontend
+    ports:
+      - "${FRONTEND_PORT}:3000"
+    environment:
+      - VITE_API_URL=${VITE_API_URL}
+    depends_on:
+      - backend
+    restart: unless-stopped
