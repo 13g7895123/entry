@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
@@ -8,7 +8,7 @@ const router = useRouter()
 const apps = ref([])
 const showEditDialog = ref(false)
 const editingApp = ref(null)
-const activeTab = ref('apps') // 'apps' or 'account'
+const activeTab = ref('apps') // 'apps', 'account', or 'notifications'
 
 const getHeaders = () => {
     const token = localStorage.getItem('token')
@@ -164,6 +164,143 @@ const updateProfile = async () => {
     }
 }
 
+// ===== LINE Bot 通知管理 =====
+const lineBots = ref([])
+const showLineBotDialog = ref(false)
+const editingLineBot = ref(null)
+const showLineBotConfirm = ref(false)
+const lineBotToDelete = ref(null)
+const testingLineBot = ref(null)
+const testMessage = ref('這是一則測試通知訊息 🔔')
+const showTestDialog = ref(false)
+
+const fetchLineBots = async () => {
+    try {
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/linebot-configs`, {
+            headers: getHeaders()
+        })
+        if (checkAuth(response)) {
+            lineBots.value = await response.json()
+        }
+    } catch (e) {
+        console.error("Failed to fetch LINE Bot configs", e)
+    }
+}
+
+const openLineBotCreateDialog = () => {
+    editingLineBot.value = {
+        name: '',
+        channel_access_token: '',
+        channel_secret: '',
+        user_id: '',
+        enabled: true,
+        description: ''
+    }
+    showLineBotDialog.value = true
+}
+
+const openLineBotEditDialog = (bot) => {
+    editingLineBot.value = { ...bot }
+    showLineBotDialog.value = true
+}
+
+const saveLineBot = async () => {
+    const isEditing = !!editingLineBot.value.id
+    const url = isEditing
+        ? `${import.meta.env.VITE_API_URL}/api/linebot-configs/${editingLineBot.value.id}`
+        : `${import.meta.env.VITE_API_URL}/api/linebot-configs`
+
+    try {
+        const response = await fetch(url, {
+            method: isEditing ? 'PUT' : 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify(editingLineBot.value)
+        })
+        if (checkAuth(response)) {
+            await fetchLineBots()
+            showLineBotDialog.value = false
+            window.sysNotify(`LINE_BOT ${isEditing ? 'UPDATE' : 'INIT'} complete: Configuration synchronized.`, 'success')
+        }
+    } catch (e) {
+        window.sysNotify('FATAL_EXCEPTION: LINE Bot configuration failed.', 'error')
+    }
+}
+
+const requestLineBotDelete = (id) => {
+    lineBotToDelete.value = id
+    showLineBotConfirm.value = true
+}
+
+const executeLineBotDelete = async () => {
+    if (!lineBotToDelete.value) return
+
+    try {
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/linebot-configs/${lineBotToDelete.value}`, {
+            method: 'DELETE',
+            headers: getHeaders()
+        })
+        if (checkAuth(response)) {
+            await fetchLineBots()
+            window.sysNotify('LINE Bot configuration purged from database.', 'success')
+        }
+    } catch (e) {
+        window.sysNotify('FATAL_ERROR: LINE Bot purge protocol failed.', 'error')
+    } finally {
+        showLineBotConfirm.value = false
+        lineBotToDelete.value = null
+    }
+}
+
+const openTestDialog = (bot) => {
+    testingLineBot.value = bot
+    testMessage.value = '這是一則測試通知訊息 🔔'
+    showTestDialog.value = true
+}
+
+const sendTestMessage = async () => {
+    if (!testingLineBot.value) return
+
+    try {
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/linebot-configs/${testingLineBot.value.id}/test`, {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify({ message: testMessage.value })
+        })
+        const result = await response.json()
+        if (response.ok) {
+            window.sysNotify('TEST_MESSAGE sent successfully to LINE Bot.', 'success')
+            showTestDialog.value = false
+        } else {
+            window.sysNotify(`TEST_FAILED: ${result.detail || result.message}`, 'error')
+        }
+    } catch (e) {
+        window.sysNotify('NETWORK_ERROR: Test message transmission failed.', 'error')
+    }
+}
+
+const toggleLineBotStatus = async (bot) => {
+    try {
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/linebot-configs/${bot.id}`, {
+            method: 'PUT',
+            headers: getHeaders(),
+            body: JSON.stringify({ enabled: !bot.enabled })
+        })
+        if (checkAuth(response)) {
+            await fetchLineBots()
+            window.sysNotify(`LINE Bot ${!bot.enabled ? 'ENABLED' : 'DISABLED'} successfully.`, 'success')
+        }
+    } catch (e) {
+        window.sysNotify('FATAL_ERROR: Status toggle failed.', 'error')
+    }
+}
+
+// 當切換到通知頁籤時載入資料
+watch(activeTab, (newTab) => {
+    if (newTab === 'notifications') {
+        fetchLineBots()
+    }
+})
+
 onMounted(fetchApps)
 </script>
 
@@ -190,6 +327,13 @@ onMounted(fetchApps)
                 >
                     <span class="nav-code">02</span>
                     <span class="nav-label">SECURITY_CONFIG</span>
+                </button>
+                <button 
+                    :class="['nav-item', { active: activeTab === 'notifications' }]" 
+                    @click="activeTab = 'notifications'"
+                >
+                    <span class="nav-code">03</span>
+                    <span class="nav-label">NOTIFY_MANAGEMENT</span>
                 </button>
             </nav>
 
@@ -315,6 +459,64 @@ onMounted(fetchApps)
                         </div>
                     </div>
                 </div>
+
+                <!-- Notifications Section -->
+                <div v-else-if="activeTab === 'notifications'" key="notifications" class="content-section">
+                    <div class="section-banner">
+                        <div class="banner-title">
+                            <h1>NOTIFY_MANAGEMENT</h1>
+                            <p>LINE_BOT_INTEGRATION: ACTIVE</p>
+                        </div>
+                        <button class="btn-add-resource" @click="openLineBotCreateDialog">
+                            <span class="plus">+</span> ADD_LINE_BOT
+                        </button>
+                    </div>
+
+                    <div class="table-container">
+                        <table class="admin-table">
+                            <thead>
+                                <tr>
+                                    <th>SEC_ID</th>
+                                    <th>STATUS</th>
+                                    <th>BOT_NAME</th>
+                                    <th>USER_ID</th>
+                                    <th>DESCRIPTION</th>
+                                    <th>EXECUTION_CMD</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr v-for="bot in lineBots" :key="bot.id">
+                                    <td class="code-font">#{{ bot.id.toString().padStart(3, '0') }}</td>
+                                    <td>
+                                        <button 
+                                            :class="['status-badge', bot.enabled ? 'status-active' : 'status-inactive']"
+                                            @click="toggleLineBotStatus(bot)"
+                                        >
+                                            {{ bot.enabled ? 'ENABLED' : 'DISABLED' }}
+                                        </button>
+                                    </td>
+                                    <td class="bold-font">{{ bot.name }}</td>
+                                    <td class="code-font">{{ bot.user_id.substring(0, 16) }}...</td>
+                                    <td class="table-desc">{{ bot.description || '-' }}</td>
+                                    <td>
+                                        <div class="row-actions">
+                                            <button class="btn-cmd btn-test" @click="openTestDialog(bot)">TEST</button>
+                                            <button class="btn-cmd" @click="openLineBotEditDialog(bot)">MODIFY</button>
+                                            <button class="btn-cmd-danger" @click="requestLineBotDelete(bot.id)">DROP</button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr v-if="lineBots.length === 0">
+                                    <td colspan="6" class="empty-state">
+                                        <div class="empty-icon">📡</div>
+                                        <p>NO_LINE_BOT_CONFIGURED</p>
+                                        <span>Initialize a new LINE Bot configuration to enable notifications.</span>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </transition>
         </main>
 
@@ -392,6 +594,127 @@ onMounted(fetchApps)
                         <button @click="executeDelete" class="btn-confirm-delete">EXECUTE_PURGE</button>
                     </div>
                     <div class="alert-scan"></div>
+                </div>
+            </div>
+        </transition>
+
+        <!-- LINE Bot Edit/Create Dialog -->
+        <transition name="fade">
+            <div v-if="showLineBotDialog" class="dialog-overlay" @click.self="showLineBotDialog = false">
+                <div class="cyber-dialog linebot-dialog">
+                    <div class="dialog-header linebot-header">
+                        <span class="prefix">CMD: </span>{{ editingLineBot?.id ? 'MODIFY_LINEBOT' : 'INIT_LINEBOT' }}
+                    </div>
+                    
+                    <div class="dialog-body">
+                        <div class="field-item">
+                            <label>BOT_NAME</label>
+                            <div class="cyber-input">
+                                <input v-model="editingLineBot.name" type="text" placeholder="e.g. 主要通知機器人">
+                            </div>
+                        </div>
+
+                        <div class="field-item">
+                            <label>CHANNEL_ACCESS_TOKEN</label>
+                            <div class="cyber-input">
+                                <input v-model="editingLineBot.channel_access_token" type="password" placeholder="LINE Channel Access Token">
+                            </div>
+                        </div>
+
+                        <div class="field-item">
+                            <label>CHANNEL_SECRET</label>
+                            <div class="cyber-input">
+                                <input v-model="editingLineBot.channel_secret" type="password" placeholder="LINE Channel Secret">
+                            </div>
+                        </div>
+
+                        <div class="field-item">
+                            <label>TARGET_USER_ID</label>
+                            <div class="cyber-input">
+                                <input v-model="editingLineBot.user_id" type="text" placeholder="User ID or Group ID">
+                            </div>
+                        </div>
+
+                        <div class="field-item">
+                            <label>DESCRIPTION</label>
+                            <div class="cyber-input">
+                                <textarea v-model="editingLineBot.description" rows="2" placeholder="描述此 LINE Bot 的用途"></textarea>
+                            </div>
+                        </div>
+
+                        <div class="field-item toggle-field">
+                            <label>ENABLED_STATUS</label>
+                            <button 
+                                :class="['toggle-btn', editingLineBot.enabled ? 'toggle-on' : 'toggle-off']"
+                                @click="editingLineBot.enabled = !editingLineBot.enabled"
+                            >
+                                {{ editingLineBot.enabled ? 'ENABLED' : 'DISABLED' }}
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="dialog-footer">
+                        <button @click="showLineBotDialog = false" class="btn-abort">ABORT_CMD</button>
+                        <button @click="saveLineBot" class="btn-commit">COMMIT_CHANGES</button>
+                    </div>
+                </div>
+            </div>
+        </transition>
+
+        <!-- LINE Bot Delete Confirm Dialog -->
+        <transition name="fade">
+            <div v-if="showLineBotConfirm" class="dialog-overlay alert-overlay" @click.self="showLineBotConfirm = false">
+                <div class="cyber-dialog alert-dialog">
+                    <div class="dialog-header alert-header">
+                        <span class="prefix">ALERT: </span>LINEBOT_PURGE_REQUESTED
+                    </div>
+                    
+                    <div class="dialog-body alert-body">
+                        <div class="alert-icon-large">🤖</div>
+                        <div class="alert-text">
+                            <h3>LINEBOT_CONFIG_PURGE</h3>
+                            <p>You are about to remove this LINE Bot configuration. All notification settings will be permanently deleted.</p>
+                            <div class="target-node">TARGET_ID: #{{ lineBotToDelete?.toString().padStart(3, '0') }}</div>
+                        </div>
+                    </div>
+
+                    <div class="dialog-footer alert-footer">
+                        <button @click="showLineBotConfirm = false" class="btn-abort">CANCEL_PURGE</button>
+                        <button @click="executeLineBotDelete" class="btn-confirm-delete">EXECUTE_PURGE</button>
+                    </div>
+                    <div class="alert-scan"></div>
+                </div>
+            </div>
+        </transition>
+
+        <!-- LINE Bot Test Message Dialog -->
+        <transition name="fade">
+            <div v-if="showTestDialog" class="dialog-overlay" @click.self="showTestDialog = false">
+                <div class="cyber-dialog test-dialog">
+                    <div class="dialog-header test-header">
+                        <span class="prefix">TEST: </span>SEND_NOTIFICATION
+                    </div>
+                    
+                    <div class="dialog-body">
+                        <div class="test-info">
+                            <div class="test-target">
+                                <span class="label">TARGET_BOT:</span>
+                                <span class="value">{{ testingLineBot?.name }}</span>
+                            </div>
+                        </div>
+
+                        <div class="field-item">
+                            <label>MESSAGE_CONTENT</label>
+                            <div class="cyber-input">
+                                <textarea v-model="testMessage" rows="3" placeholder="輸入測試訊息內容"></textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="dialog-footer">
+                        <button @click="showTestDialog = false" class="btn-abort">CANCEL_TEST</button>
+                        <button @click="sendTestMessage" class="btn-commit btn-send">TRANSMIT_MESSAGE</button>
+                    </div>
                 </div>
             </div>
         </transition>
@@ -1003,4 +1326,178 @@ onMounted(fetchApps)
 
 .fade-enter-active, .fade-leave-active { transition: opacity 0.3s; }
 .fade-enter-from, .fade-leave-to { opacity: 0; }
+
+/* LINE Bot Notification Styles */
+.status-badge {
+    padding: 0.4rem 1rem;
+    font-size: 0.7rem;
+    font-weight: 900;
+    letter-spacing: 1px;
+    border: 1px solid;
+    background: transparent;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.status-active {
+    color: #22c55e;
+    border-color: rgba(34, 197, 94, 0.4);
+}
+
+.status-active:hover {
+    background: rgba(34, 197, 94, 0.1);
+    border-color: #22c55e;
+    box-shadow: 0 0 15px rgba(34, 197, 94, 0.2);
+}
+
+.status-inactive {
+    color: #64748b;
+    border-color: rgba(100, 116, 139, 0.4);
+}
+
+.status-inactive:hover {
+    background: rgba(100, 116, 139, 0.1);
+    border-color: #64748b;
+}
+
+.btn-test {
+    background: transparent;
+    border: 1px solid rgba(168, 85, 247, 0.4);
+    color: #a855f7;
+}
+
+.btn-test:hover {
+    background: rgba(168, 85, 247, 0.1);
+    border-color: #a855f7;
+    box-shadow: 0 0 15px rgba(168, 85, 247, 0.2);
+}
+
+.empty-state {
+    text-align: center;
+    padding: 4rem 2rem !important;
+}
+
+.empty-icon {
+    font-size: 4rem;
+    margin-bottom: 1.5rem;
+    opacity: 0.5;
+}
+
+.empty-state p {
+    font-size: 1.1rem;
+    font-weight: 800;
+    letter-spacing: 2px;
+    color: #64748b;
+    margin: 0 0 0.5rem;
+}
+
+.empty-state span {
+    font-size: 0.85rem;
+    color: #475569;
+}
+
+/* LINE Bot Dialog */
+.linebot-dialog {
+    max-width: 700px;
+}
+
+.linebot-header {
+    background: rgba(0, 185, 107, 0.1);
+    border-bottom: 1px solid rgba(0, 185, 107, 0.3);
+    color: #00b96b;
+}
+
+.linebot-header .prefix {
+    color: #00b96b;
+}
+
+.toggle-field {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.toggle-btn {
+    padding: 0.6rem 1.5rem;
+    font-size: 0.75rem;
+    font-weight: 900;
+    letter-spacing: 1px;
+    border: 1px solid;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.toggle-on {
+    background: rgba(34, 197, 94, 0.1);
+    border-color: #22c55e;
+    color: #22c55e;
+}
+
+.toggle-on:hover {
+    background: rgba(34, 197, 94, 0.2);
+    box-shadow: 0 0 15px rgba(34, 197, 94, 0.3);
+}
+
+.toggle-off {
+    background: rgba(100, 116, 139, 0.1);
+    border-color: #64748b;
+    color: #64748b;
+}
+
+.toggle-off:hover {
+    background: rgba(100, 116, 139, 0.2);
+}
+
+/* Test Dialog */
+.test-dialog {
+    max-width: 550px;
+}
+
+.test-header {
+    background: rgba(168, 85, 247, 0.1);
+    border-bottom: 1px solid rgba(168, 85, 247, 0.3);
+    color: #a855f7;
+}
+
+.test-header .prefix {
+    color: #a855f7;
+}
+
+.test-info {
+    background: rgba(168, 85, 247, 0.05);
+    border: 1px solid rgba(168, 85, 247, 0.2);
+    padding: 1rem 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.test-target {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.test-target .label {
+    font-size: 0.75rem;
+    font-weight: 800;
+    letter-spacing: 1px;
+    color: #64748b;
+}
+
+.test-target .value {
+    font-size: 1rem;
+    font-weight: 800;
+    color: #a855f7;
+}
+
+.btn-send {
+    background: rgba(168, 85, 247, 0.1);
+    border-color: #a855f7;
+    color: #a855f7;
+}
+
+.btn-send:hover {
+    background: rgba(168, 85, 247, 0.2);
+    box-shadow: 0 0 20px rgba(168, 85, 247, 0.3);
+}
 </style>
+

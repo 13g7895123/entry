@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
-from .api.endpoints import apps, upload, auth
+from .api.endpoints import apps, upload, auth, linebot
 from .core.database import engine, Base
 from . import models
 import os
@@ -31,4 +31,6 @@ app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 app.include_router(auth.router, prefix="/api", tags=["auth"])
 app.include_router(apps.router, prefix="/api", tags=["apps"])
 app.include_router(upload.router, prefix="/api", tags=["upload"])
+app.include_router(linebot.router, prefix="/api", tags=["linebot"])
+
 
