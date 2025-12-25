@@ -1,7 +1,7 @@
 services:
   db:
     image: postgres:15-alpine
-    container_name: entry-db
+    container_name: portal-db
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -11,33 +11,78 @@ services:
     volumes:
       - db_data:/var/lib/postgresql/data
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   backend:
     build: ./backend
-    container_name: entry-backend
+    container_name: portal-backend
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     ports:
       - "${BACKEND_PORT}:8001"
     environment:
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
     volumes:
-      - ./backend/apps.json:/app/apps.json
-      - ./backend/users.json:/app/users.json
-      - ./backend/static:/app/static
+      - ./backend:/app
+      - backend_static:/app/static
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/docs"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Nginx 反向代理 - 用於藍綠部署
+  nginx:
+    image: nginx:alpine
+    container_name: portal-nginx
+    ports:
+      - "${FRONTEND_PORT}:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+    depends_on:
+      - frontend-blue
+      - frontend-green
     restart: unless-stopped
 
-  frontend:
+  # 前端藍色環境
+  frontend-blue:
     build:
       context: ./frontend
       args:
         VITE_API_URL: ${VITE_API_URL}
-    container_name: entry-frontend
-    ports:
-      - "${FRONTEND_PORT}:80"
-    depends_on:
-      - backend
+    container_name: portal-frontend-blue
+    expose:
+      - "80"
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # 前端綠色環境
+  frontend-green:
+    build:
+      context: ./frontend
+      args:
+        VITE_API_URL: ${VITE_API_URL}
+    container_name: portal-frontend-green
+    expose:
+      - "80"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
 volumes:
   db_data:
+  backend_static:
