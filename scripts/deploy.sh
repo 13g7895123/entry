@@ -26,11 +26,11 @@ log_warn() { echo -e "${YELLOW}[WARN]${NC} $1"; }
 log_error() { echo -e "${RED}[ERROR]${NC} $1"; }
 
 NGINX_CONF="$PROJECT_DIR/nginx/conf.d/default.conf"
-NGINX_CONTAINER="entry-nginx"
+NGINX_CONTAINER="portal-nginx"
 
 # 取得當前活躍的環境
 get_active_env() {
-    if grep -q "server entry-frontend-blue:80;" "$NGINX_CONF" && ! grep -q "# server entry-frontend-blue:80;" "$NGINX_CONF"; then
+    if grep -q "server portal-frontend-blue:80;" "$NGINX_CONF" && ! grep -q "# server portal-frontend-blue:80;" "$NGINX_CONF"; then
         echo "blue"
     else
         echo "green"
@@ -76,11 +76,11 @@ switch_to() {
     
     # 更新 nginx 設定
     if [ "$target" == "blue" ]; then
-        sed -i 's/# server entry-frontend-blue:80;/server entry-frontend-blue:80;/' "$NGINX_CONF"
-        sed -i 's/server entry-frontend-green:80;/# server entry-frontend-green:80;/' "$NGINX_CONF"
+        sed -i 's/# server portal-frontend-blue:80;/server portal-frontend-blue:80;/' "$NGINX_CONF"
+        sed -i 's/server portal-frontend-green:80;/# server portal-frontend-green:80;/' "$NGINX_CONF"
     else
-        sed -i 's/server entry-frontend-blue:80;/# server entry-frontend-blue:80;/' "$NGINX_CONF"
-        sed -i 's/# server entry-frontend-green:80;/server entry-frontend-green:80;/' "$NGINX_CONF"
+        sed -i 's/server portal-frontend-blue:80;/# server portal-frontend-blue:80;/' "$NGINX_CONF"
+        sed -i 's/# server portal-frontend-green:80;/server portal-frontend-green:80;/' "$NGINX_CONF"
     fi
     
     # 重載 nginx
@@ -101,7 +101,7 @@ deploy() {
     $COMPOSE_CMD up -d "frontend-${target}"
     
     # 健康檢查
-    if ! health_check "entry-frontend-${target}"; then
+    if ! health_check "portal-frontend-${target}"; then
         log_error "新版本部署失敗，保持原環境"
         return 1
     fi

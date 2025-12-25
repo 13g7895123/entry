@@ -1,9 +1,9 @@
-# Entry Portal - CI/CD 部署指南
+# Portal - CI/CD 部署指南
 
 ## 📁 專案結構
 
 ```
-entry/
+portal/
 ├── .github/workflows/      # GitHub Actions CI/CD 工作流程
 │   ├── ci.yml              # 持續整合 (測試、建置驗證)
 │   └── deploy-prod.yml     # 正式環境部署
@@ -106,7 +106,7 @@ cp .env.example .env
 | `VPS_HOST` | VPS 伺服器 IP 或域名 | `192.168.1.100` |
 | `VPS_USER` | SSH 登入用戶名 | `deploy` |
 | `VPS_SSH_KEY` | SSH 私鑰（完整內容） | `-----BEGIN OPENSSH PRIVATE KEY-----...` |
-| `PROJECT_PATH` | 專案在伺服器上的路徑 | `/home/deploy/projects/entry` |
+| `PROJECT_PATH` | 專案在伺服器上的路徑 | `/home/deploy/projects/portal` |
 | `PROD_API_URL` | 前端呼叫的後端 API URL | `https://api.example.com` |
 
 ### 💡 SSH 私鑰共用提示
@@ -149,10 +149,10 @@ docker compose ps
 ./scripts/logs.sh backend --follow
 
 # 進入後端容器
-docker exec -it entry-backend bash
+docker exec -it portal-backend bash
 
 # 進入資料庫
-docker exec -it entry-db psql -U entry_admin -d entry_db
+docker exec -it portal-db psql -U portal_admin -d portal_db
 
 # 重啟特定服務
 docker compose restart backend

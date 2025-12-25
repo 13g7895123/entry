@@ -9,7 +9,7 @@ import os
 # Create Database tables
 Base.metadata.create_all(bind=engine)
 
-app = FastAPI(title="Entry Portal API")
+app = FastAPI(title="Portal API")
 
 # Enable CORS
 app.add_middleware(

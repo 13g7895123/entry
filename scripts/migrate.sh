@@ -20,7 +20,7 @@ log_info() { echo -e "${BLUE}[INFO]${NC} $1"; }
 log_success() { echo -e "${GREEN}[SUCCESS]${NC} $1"; }
 log_error() { echo -e "${RED}[ERROR]${NC} $1"; }
 
-CONTAINER_NAME="entry-backend"
+CONTAINER_NAME="portal-backend"
 
 # 檢查容器是否運行
 if ! docker ps --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then

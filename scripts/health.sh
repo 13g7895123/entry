@@ -45,7 +45,7 @@ else
 fi
 
 # 檢查資料庫
-if docker exec entry-db pg_isready -U ${POSTGRES_USER:-entry_admin} > /dev/null 2>&1; then
+if docker exec portal-db pg_isready -U ${POSTGRES_USER:-portal_admin} > /dev/null 2>&1; then
     echo -e "Database:       ${GREEN}● 健康${NC}"
 else
     echo -e "Database:       ${RED}● 異常${NC}"
@@ -55,7 +55,7 @@ fi
 echo ""
 echo "容器狀態:"
 echo "----------------------------------------"
-docker ps --filter "name=entry-" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" 2>/dev/null || echo "無法取得容器狀態"
+docker ps --filter "name=portal-" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" 2>/dev/null || echo "無法取得容器狀態"
 
 echo "========================================"
 echo ""
